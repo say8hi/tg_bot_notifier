@@ -3,7 +3,6 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.contrib.fsm_storage.redis import RedisStorage
 
 from tg_bot.config import load_config
 from tg_bot.filters.role import RoleFilter, AdminFilter
