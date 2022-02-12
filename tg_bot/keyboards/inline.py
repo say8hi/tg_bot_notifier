@@ -17,6 +17,21 @@ def main_menu(lang):
     )
 
 
+def inside_notification_menu(lang):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=notifications_button.get(lang),
+                                     callback_data="all_notifications")
+            ],
+            [
+                InlineKeyboardButton(text=back_button.get(lang),
+                                     callback_data="back_to_main_menu")
+            ]
+        ]
+    )
+
+
 close_menu = InlineKeyboardMarkup(
     inline_keyboard=[
         [
