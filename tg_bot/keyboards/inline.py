@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 main_menu = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="", callback_data="")
+            InlineKeyboardButton(text="Notifications", callback_data="all_notifications")
         ]
     ]
 )

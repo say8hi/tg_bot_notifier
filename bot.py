@@ -9,6 +9,7 @@ from tg_bot.filters.role import RoleFilter, AdminFilter
 from tg_bot.handlers.errors import register_errors
 from tg_bot.handlers.general import register_user
 from tg_bot.middlewares.role import RoleMiddleware
+from tg_bot.utils.db_commands import create_db_pool
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,8 @@ async def main():
 
     storage = MemoryStorage()
 
+    db = await create_db_pool(config)
+
     bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
     dp = Dispatcher(bot, storage=storage)
     dp.middleware.setup(RoleMiddleware(config.tg_bot.admins))
@@ -33,6 +36,7 @@ async def main():
     dp.filters_factory.bind(AdminFilter)
 
     bot['config'] = config
+    bot['db'] = db
 
     register_all_handlers(dp)
 

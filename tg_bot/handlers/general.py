@@ -4,6 +4,7 @@ from aiogram.dispatcher.filters.builtin import CommandStart
 from aiogram.types import CallbackQuery, Message
 
 from tg_bot.filters.chats import IsPrivate
+from tg_bot.keyboards.inline import main_menu
 from tg_bot.utils.setting_commands import set_starting_commands
 
 
@@ -15,7 +16,10 @@ async def close_handler(call: CallbackQuery, state: FSMContext):
 async def bot_start(message: Message, state: FSMContext):
     await state.finish()
     await set_starting_commands(message.bot, message.from_user.id)
-    await message.answer(f"<b>Welcome, <code>{message.from_user.username}</></b>")
+    await message.answer(f"<b>Welcome, <code>{message.from_user.username}</></b>",
+                         reply_markup=main_menu)
+    await message.bot.get("db").execute("INSERT INTO users (id, username) VALUES ($1, $2)",
+                                        message.from_user.id, message.from_user.username)
 
 
 def register_user(dp: Dispatcher):
