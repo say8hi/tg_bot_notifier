@@ -5,10 +5,7 @@ from environs import Env
 
 @dataclass
 class DBConfig:
-    host: str
-    user: str
-    password: str
-    db_name: str
+    db_uri: str
 
 
 @dataclass
@@ -33,9 +30,6 @@ def load_config():
             admins=list(map(int, env.list("ADMINS")))
         ),
         db=DBConfig(
-            host=env.str("HOST"),
-            user=env.str("USER"),
-            password=env.str("PASSWORD"),
-            db_name=env.str("DB_NAME")
+            db_uri=env.str("URI")
         )
     )

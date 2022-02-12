@@ -3,13 +3,15 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from tg_bot.config import load_config
 from tg_bot.filters.role import RoleFilter, AdminFilter
 from tg_bot.handlers.errors import register_errors
 from tg_bot.handlers.general import register_user
+from tg_bot.middlewares.db import DBMiddleware
 from tg_bot.middlewares.role import RoleMiddleware
-from tg_bot.utils.db_commands import create_db_pool
+from tg_bot.utils.db_commands import create_db_pool, DB
 
 logger = logging.getLogger(__name__)
 
@@ -27,21 +29,26 @@ async def main():
 
     storage = MemoryStorage()
 
-    db = await create_db_pool(config)
+    pool = await create_db_pool(config)
+
+    scheduler = AsyncIOScheduler()
 
     bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
     dp = Dispatcher(bot, storage=storage)
     dp.middleware.setup(RoleMiddleware(config.tg_bot.admins))
+    dp.middleware.setup(DBMiddleware())
     dp.filters_factory.bind(RoleFilter)
     dp.filters_factory.bind(AdminFilter)
 
+    bot['scheduler'] = scheduler
     bot['config'] = config
-    bot['db'] = db
+    bot['db'] = DB(pool)
 
     register_all_handlers(dp)
 
     # start
     try:
+        scheduler.start()
         await dp.start_polling()
     finally:
         await dp.storage.close()

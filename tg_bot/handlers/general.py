@@ -1,3 +1,4 @@
+import asyncpg
 from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.builtin import CommandStart
@@ -13,13 +14,11 @@ async def close_handler(call: CallbackQuery, state: FSMContext):
     await call.message.delete()
 
 
-async def bot_start(message: Message, state: FSMContext):
+async def bot_start(message: Message, state: FSMContext, user: asyncpg.Record):
     await state.finish()
     await set_starting_commands(message.bot, message.from_user.id)
     await message.answer(f"<b>Welcome, <code>{message.from_user.username}</></b>",
                          reply_markup=main_menu)
-    await message.bot.get("db").execute("INSERT INTO users (id, username) VALUES ($1, $2)",
-                                        message.from_user.id, message.from_user.username)
 
 
 def register_user(dp: Dispatcher):
