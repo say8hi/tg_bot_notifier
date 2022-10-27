@@ -6,7 +6,7 @@ from asyncpg import Pool
 from tg_bot.config import Config
 
 
-async def create_db_pool(config: Config):
+async def create_db_pool(config: Config) -> asyncpg.Pool:
     return await asyncpg.create_pool(config.db.db_uri)
 
 
@@ -22,9 +22,10 @@ class DB:
                                     user_id, username, lang)
             return self.get_user(user_id)
 
-    async def get_user(self, user_id):
-        sql = "SELECT * FROM users  WHERE id=$1"
-        return await self.pool.fetchrow(sql, user_id)
+    async def get_user(self, user_id=None, get_all: bool = False):
+        if user_id and not get_all:
+            return await self.pool.fetchrow("SELECT * FROM users WHERE id=$1", user_id)
+        return await self.pool.fetch("SELECT * FROM users")
 
     async def update_user(self, user_id: int, **kwargs):
         params = self._convert_dict_to_params(kwargs)
@@ -35,22 +36,32 @@ class DB:
 
     # ===========================NOTIFICATIONS===========================
     async def add_notification(self, user_id: int, desc: str, date_complete: str, title: str):
-        await self.pool.execute(
-            'INSERT INTO notifications (user_id, "desc", date_set) VALUES ($1, $2, $3)',
-            user_id, desc, datetime.datetime.now().strftime("%Y.%m.%d"))
+        return await self.pool.fetchrow(
+            'INSERT INTO notifications (user_id, "desc", date_set, date_complete, title) VALUES ($1, $2, $3, $4, $5)'
+            ' returning *',
+            user_id, desc, datetime.datetime.now().strftime("%d.%m.%Y"), date_complete, title)
 
     async def update_notification(self, notification_id: int, **kwargs):
         params = self._convert_dict_to_params(kwargs)
         await self.pool.execute(f"UPDATE notifications SET {','.join(params)} WHERE id=$1", notification_id)
 
-    async def get_notification(self, notification_id: int, get_all: bool = False):
+    async def get_notification(self, notification_id: int = None, get_all: bool = False):
         if not get_all:
             return await self.pool.fetchrow("SELECT * FROM notifications WHERE id=$1", notification_id)
         else:
-            return await self.pool.fetch("SELECT * FROM notifications WHERE user_id=$1", notification_id)
+            if notification_id:
+                return await self.pool.fetch("SELECT * FROM notifications WHERE user_id=$1", notification_id)
+            return await self.pool.fetch("SELECT * FROM notifications")
 
     async def del_notification(self, notification_id):
         await self.pool.execute("DELETE FROM notifications WHERE id=$1", notification_id)
+
+    # ===========================NOTIFICATIONS===========================
+    async def add_time_zone(self, time_zone: str):
+        await self.pool.execute('INSERT INTO time_zones (time_zone) VALUES ($1)', time_zone)
+
+    async def get_all_time_zones(self):
+        return await self.pool.fetch("SELECT * FROM time_zones")
 
     # MISC
     @staticmethod

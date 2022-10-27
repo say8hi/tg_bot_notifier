@@ -1,7 +1,4 @@
-from aiogram import Bot
 from aiogram.dispatcher.middlewares import LifetimeControllerMiddleware
-
-from tg_bot.utils.db_commands import DB
 
 
 class DBMiddleware(LifetimeControllerMiddleware):

@@ -1,11 +1,12 @@
 """
 Just for testing some things
 """
+import pytz
 
 
-# def test():
-#     ...
-#
-#
-# if __name__ == '__main__':
-#     test()
+def test():
+    return pytz.all_timezones
+
+
+if __name__ == '__main__':
+    print(test())
