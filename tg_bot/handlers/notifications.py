@@ -63,6 +63,10 @@ async def edit_notification(call: CallbackQuery, state: FSMContext, user: asyncp
         await call.message.edit_text(notification_deleted_message.get(user.get("lang")),
                                      reply_markup=back_to_notification_menu(user.get('lang')))
 
+    else:
+        await call.answer("❗️This function in development right now." if user.get('lang') == 'en' else
+                          "❗️Эта функция находится в разработке")
+
 
 async def add_notification_ask_for_title(call: CallbackQuery, state: FSMContext, user: asyncpg.Record):
     msg_to_edit = await call.message.edit_text(send_title.get(user.get("lang")),
