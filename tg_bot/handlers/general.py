@@ -24,6 +24,7 @@ async def call_main_menu(call: CallbackQuery, state: FSMContext, user: asyncpg.R
 async def bot_start(message: Message, state: FSMContext, user: asyncpg.Record):
     await state.finish()
     await set_starting_commands(message.bot, message.from_user.id)
+    print(user)
     await message.answer(
         start_msg.get(user.get('lang')).replace("name", message.from_user.full_name),
         reply_markup=main_menu(user.get('lang'))

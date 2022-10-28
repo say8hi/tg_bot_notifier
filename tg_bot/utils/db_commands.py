@@ -17,10 +17,10 @@ class DB:
 
     # ===========================USERS===========================
     async def add_user(self, user_id: int, username: str, lang: str = "en"):
-        if not self.get_user(user_id):
+        if not await self.get_user(user_id):
             await self.pool.execute("INSERT INTO users (id, username, lang) VALUES ($1, $2, $3)",
                                     user_id, username, lang)
-            return self.get_user(user_id)
+            return await self.get_user(user_id)
 
     async def get_user(self, user_id=None, get_all: bool = False):
         if user_id and not get_all:
