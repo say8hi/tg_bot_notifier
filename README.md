@@ -31,7 +31,7 @@ git clone https://github.com/say8hi/tg_bot_notifier.git
 ```
 2. Install the necessary dependencies:
 ```bash
-cd telegram-notification-bot
+cd tg_bot_notifier
 pip install -r requirements.txt
 ```
 3. Open the **.env** file and add the environment variables:
