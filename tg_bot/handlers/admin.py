@@ -5,11 +5,13 @@ from aiogram.dispatcher import FSMContext
 from aiogram.types import Message, CallbackQuery
 
 from tg_bot.keyboards.inline import admin_menu, back_admin, choose_menu
+from tg_bot.models.database import Database
 from tg_bot.states.states import AdminAddTimeZone, BroadcastState
 from tg_bot.utils.other_funcs import broadcast
 
 
-async def admin_main(update: Message | CallbackQuery):
+async def admin_main(update: Message | CallbackQuery, state: FSMContext):
+    await state.finish()
     if isinstance(update, CallbackQuery):
         await update.message.edit_text("Админ-меню:", reply_markup=admin_menu)
     else:
@@ -25,9 +27,8 @@ async def add_time_zone(call: CallbackQuery, state: FSMContext):
 async def add_time_zone_receive(message: Message, state: FSMContext):
     data = await state.get_data()
     msg_to_edit = data.get("msg_to_edit")
-    db = message.bot.get("db")
     await message.delete()
-    await db.add_time_zone(message.text)
+    await Database.time_zones.add(time_zone=message.text)
     await msg_to_edit.edit_text("Готово", reply_markup=back_admin)
     await state.finish()
 
@@ -65,7 +66,7 @@ async def agree_and_start(call: CallbackQuery, state: FSMContext):
     await state.finish()
     await call.message.delete()
     to_delete = await call.message.answer("<b>Рассылка начата</b>")
-    await broadcast(call.bot, call.bot.get("db"), text, photo_name)
+    await broadcast(call.bot, text, photo_name)
     if photo_name:
         os.remove(photo_name)
     await to_delete.delete()

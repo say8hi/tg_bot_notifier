@@ -1,69 +1,95 @@
-import datetime
+import os
+import sqlite3
 
-import asyncpg
-from asyncpg import Pool
-
-from tg_bot.config import Config
+import aiosqlite
 
 
-async def create_db_pool(config: Config) -> asyncpg.Pool:
-    return await asyncpg.create_pool(config.db.db_uri)
+class DatabaseCommands:
 
+    def __init__(self, table: str):
+        self.table = table
 
-class DB:
+    async def add(self, **kwargs):
+        raw_values = (f"'{value}'" for value in kwargs.values())
+        keys, values = ', '.join(kwargs.keys()), ', '.join(raw_values)
+        async with aiosqlite.connect("db.db", check_same_thread=False) as conn:
+            conn.row_factory = self.__dict_factory
+            await conn.execute(f"INSERT INTO {self.table} ({keys}) VALUES ({values})")
+            await conn.commit()
+            params = [f"{key}='{value}'" for key, value in kwargs.items()]
+            cursor = await conn.execute(f"SELECT * FROM {self.table} WHERE {'AND '.join(params)}")
+            h = await cursor.fetchone()
+            return h
 
-    def __init__(self, pool: Pool):
-        self.pool = pool
+    async def update(self, id_value: int, **kwargs):
+        async with aiosqlite.connect("db.db", check_same_thread=False) as conn:
+            params = ",".join(f"{key}='{value}'" for key, value in kwargs.items())
+            await conn.execute(f"UPDATE {self.table} SET {params} WHERE id={id_value}")
+            await conn.commit()
 
-    # ===========================USERS===========================
-    async def add_user(self, user_id: int, username: str, lang: str = "en"):
-        if not await self.get_user(user_id):
-            await self.pool.execute("INSERT INTO users (id, username, lang) VALUES ($1, $2, $3)",
-                                    user_id, username, lang)
-            return await self.get_user(user_id)
-
-    async def get_user(self, user_id=None, get_all: bool = False):
-        if user_id and not get_all:
-            return await self.pool.fetchrow("SELECT * FROM users WHERE id=$1", user_id)
-        return await self.pool.fetch("SELECT * FROM users")
-
-    async def update_user(self, user_id: int, **kwargs):
-        params = self._convert_dict_to_params(kwargs)
-        await self.pool.execute(f"UPDATE users SET {','.join(params)} WHERE id=$1", user_id)
-
-    async def del_user(self, user_id: int):
-        await self.pool.execute(f"DELETE FROM users WHERE id=$1", user_id)
-
-    # ===========================NOTIFICATIONS===========================
-    async def add_notification(self, user_id: int, desc: str, date_complete: str, title: str):
-        return await self.pool.fetchrow(
-            'INSERT INTO notifications (user_id, "desc", date_set, date_complete, title) VALUES ($1, $2, $3, $4, $5)'
-            ' returning *',
-            user_id, desc, datetime.datetime.now().strftime("%d.%m.%Y"), date_complete, title)
-
-    async def update_notification(self, notification_id: int, **kwargs):
-        params = self._convert_dict_to_params(kwargs)
-        await self.pool.execute(f"UPDATE notifications SET {','.join(params)} WHERE id=$1", notification_id)
-
-    async def get_notification(self, notification_id: int = None, get_all: bool = False):
-        if not get_all:
-            return await self.pool.fetchrow("SELECT * FROM notifications WHERE id=$1", notification_id)
+    async def get(self, id_value: int = None, get_all: bool = False) -> sqlite3.Row | list:
+        if any([id_value, get_all]):
+            async with aiosqlite.connect('db.db', check_same_thread=False) as conn:
+                conn.row_factory = self.__dict_factory
+                cursor = await conn.execute(f"SELECT * FROM {self.table}"
+                                            f" {'WHERE id=' if not get_all else ''}{id_value if not get_all else ''}")
+                return await cursor.fetchone() if not get_all else await cursor.fetchall()
         else:
-            if notification_id:
-                return await self.pool.fetch("SELECT * FROM notifications WHERE user_id=$1", notification_id)
-            return await self.pool.fetch("SELECT * FROM notifications")
+            raise ValueError
 
-    async def del_notification(self, notification_id):
-        await self.pool.execute("DELETE FROM notifications WHERE id=$1", notification_id)
+    async def delete(self, id_value: int):
+        async with aiosqlite.connect("db.db", check_same_thread=False) as conn:
+            await conn.execute(f"DELETE FROM {self.table} WHERE id={id_value}")
+            await conn.commit()
 
-    # ===========================NOTIFICATIONS===========================
-    async def add_time_zone(self, time_zone: str):
-        await self.pool.execute('INSERT INTO time_zones (time_zone) VALUES ($1)', time_zone)
+    @classmethod
+    async def custom_sql(cls, sql: str, to_dict=True):
+        async with aiosqlite.connect("db.db", check_same_thread=False) as conn:
+            conn.row_factory = cls.__dict_factory if to_dict else None
+            cursor = await conn.execute(sql)
+            h = await cursor.fetchall()
+            await conn.commit()
+            return h
 
-    async def get_all_time_zones(self):
-        return await self.pool.fetch("SELECT * FROM time_zones")
+    @classmethod
+    async def create_database(cls):
+        if os.path.exists("db.db"):
+            return
+        sql_requests = ["create table notifications"
+                        "(id             integer "
+                        "constraint notifications_pk "
+                        "primary key autoincrement,"
+                        "user_id        integer,"
+                        "desc           text,"
+                        "date_complete"
+                        " text,"
+                        "title          text,"
+                        "is_on          integer default 1,"
+                        "date_set       text);",
 
-    # MISC
+                        "create table users"
+                        "(id         integer "
+                        "constraint users_pk "
+                        "primary key,"
+                        "username   text,"
+                        "registered real,"
+                        "lang       text default 'en',"
+                        "time_zone  text);",
+                        "create table time_zones"
+                        "(id             integer "
+                        "constraint time_zone_pk "
+                        "primary key autoincrement,"
+                        "time_zone       text);"
+                        ]
+        async with aiosqlite.connect("db.db", check_same_thread=False) as conn:
+            for sql in sql_requests:
+                await conn.execute(sql)
+            await conn.commit()
+
     @staticmethod
-    def _convert_dict_to_params(dictionary: dict):
-        return [f"{key}='{value}'" for key, value in dictionary.items()]
+    def __dict_factory(cursor, row):
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0]] = row[idx]
+        return d
+

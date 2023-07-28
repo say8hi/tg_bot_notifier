@@ -1,6 +1,5 @@
 from datetime import datetime
 
-import asyncpg
 from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -8,46 +7,46 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from tg_bot.keyboards.inline import notification_menu, inside_notification_menu, back_to_notification_menu, \
     select_date_menu, agree_menu
+from tg_bot.models.database import Database
 from tg_bot.states.states import AddNotificationState
 from tg_bot.utils.messages import notifications_menu_message, notification_desc, notification_deleted_message, \
     send_title, send_desc, choose_date, choose_time, last_agree, wrong_format, notification_done
 from tg_bot.utils.other_funcs import send_notification, add_notification_job
 
 
-async def all_notifications(call: CallbackQuery, state: FSMContext, user: asyncpg.Record):
+async def all_notifications(call: CallbackQuery, state: FSMContext, user: dict):
     await state.finish()
     await call.message.edit_text(
         notifications_menu_message.get(user.get('lang')),
         reply_markup=await notification_menu(
-            call.bot.get('db'),
             user.get('id'),
             user.get('lang'))
     )
 
 
-async def select_notification(call: CallbackQuery, user: asyncpg.Record):
-    notif_id, db = call.data.split(":")[1], call.bot.get("db")
-    notification = await db.get_notification(int(notif_id))
+async def select_notification(call: CallbackQuery, user: dict):
+    notif_id = call.data.split(":")[1]
+    notification = await Database.notifications.get(notif_id)
     await call.message.edit_text(notification_desc(notification, user.get('lang')),
                                  reply_markup=inside_notification_menu(lang=user.get("lang"),
                                                                        notification_id=notif_id,
                                                                        enabled=notification.get("is_on")))
 
 
-async def enable_notification(call: CallbackQuery, user: asyncpg.Record):
-    notification_id, db = int(call.data.split(":")[1]), call.bot.get("db")
-    notification = await db.get_notification(int(notification_id))
+async def enable_notification(call: CallbackQuery, user: dict):
+    notification_id = int(call.data.split(":")[1])
+    notification = await Database.notifications.get(notification_id)
     scheduler: AsyncIOScheduler = call.bot.get("scheduler")
     job = scheduler.get_job(f"notification:{notification_id}")
     if notification.get('is_on') == 1:
-        await db.update_notification(notification_id, is_on=0)
+        await Database.notifications.update(notification_id, is_on=0)
         if job:
             job.remove()
         enabled = 0
     else:
-        await db.update_notification(notification_id, is_on=1)
+        await Database.notifications.update(notification_id, is_on=1)
         if not job:
-            await add_notification_job(notification, db, call.bot, scheduler)
+            await add_notification_job(notification, call.bot, scheduler)
         enabled = 1
     await call.message.edit_text(notification_desc(notification, user.get('lang')),
                                  reply_markup=inside_notification_menu(lang=user.get("lang"),
@@ -55,11 +54,10 @@ async def enable_notification(call: CallbackQuery, user: asyncpg.Record):
                                                                        enabled=enabled))
 
 
-async def edit_notification(call: CallbackQuery, state: FSMContext, user: asyncpg.Record):
-    option, notif_id, db = call.data.split(":")[1], call.data.split(":")[2], call.bot.get("db")
-    # notification = await db.get_notification(int(notif_id))
+async def edit_notification(call: CallbackQuery, user: dict):
+    option, notif_id = call.data.split(":")[1], call.data.split(":")[2]
     if option == "delete":
-        await db.del_notification(int(notif_id))
+        await Database.notifications.delete(int(notif_id))
         await call.message.edit_text(notification_deleted_message.get(user.get("lang")),
                                      reply_markup=back_to_notification_menu(user.get('lang')))
 
@@ -68,14 +66,14 @@ async def edit_notification(call: CallbackQuery, state: FSMContext, user: asyncp
                           "❗️Эта функция находится в разработке")
 
 
-async def add_notification_ask_for_title(call: CallbackQuery, state: FSMContext, user: asyncpg.Record):
+async def add_notification_ask_for_title(call: CallbackQuery, state: FSMContext, user: dict):
     msg_to_edit = await call.message.edit_text(send_title.get(user.get("lang")),
                                                reply_markup=back_to_notification_menu(user.get('lang')))
     await AddNotificationState.AN1.set()
     await state.update_data(msg_to_edit=msg_to_edit)
 
 
-async def add_notification_ask_for_desc(message: Message, state: FSMContext, user: asyncpg.Record):
+async def add_notification_ask_for_desc(message: Message, state: FSMContext, user: dict):
     data = await state.get_data()
     msg_to_edit, title = data.get("msg_to_edit"), message.text
     await message.delete()
@@ -85,7 +83,7 @@ async def add_notification_ask_for_desc(message: Message, state: FSMContext, use
     await state.update_data(title=title)
 
 
-async def add_notification_ask_for_date(message: Message, state: FSMContext, user: asyncpg.Record):
+async def add_notification_ask_for_date(message: Message, state: FSMContext, user: dict):
     data = await state.get_data()
     msg_to_edit, title, desc = data.get("msg_to_edit"), data.get("title"), message.text
     await message.delete()
@@ -96,13 +94,13 @@ async def add_notification_ask_for_date(message: Message, state: FSMContext, use
     await state.update_data(desc=desc)
 
 
-async def add_notification_receive_date(call: CallbackQuery, state: FSMContext, user: asyncpg.Record):
+async def add_notification_receive_date(call: CallbackQuery, state: FSMContext, user: dict):
     data = await state.get_data()
     msg_to_edit, title, desc = data.get("msg_to_edit"), data.get("title"), data.get("desc")
     year, month, day, done = call.data.split(":")[1:]
     if done == "done":
-        await AddNotificationState.next()
         date = datetime(year=int(year), month=int(month), day=int(day))
+        await AddNotificationState.next()
         await call.message.edit_text(
             choose_time.get(user.get('lang')).replace(
                 "title", title).replace("desc", desc).replace("date", date.strftime("%Y.%m.%d")),
@@ -113,11 +111,16 @@ async def add_notification_receive_date(call: CallbackQuery, state: FSMContext, 
             month = 12
         elif int(month) > 12:
             month = 1
+
+        date = datetime(year=int(year), month=int(month), day=int(day))
+        if date < datetime.now() and date.strftime("%Y.%m.%d") != datetime.now().strftime("%Y.%m.%d"):
+            await call.answer("Вы выбрали уже прошедшую дату.", show_alert=True)
+            return
         await msg_to_edit.edit_text(choose_date.get(user.get("lang")).replace("title", title).replace("desc", desc),
                                     reply_markup=await select_date_menu(user, year, month, day))
 
 
-async def add_notification_receive_time(message: Message, state: FSMContext, user: asyncpg.Record):
+async def add_notification_receive_time(message: Message, state: FSMContext, user: dict):
     data = await state.get_data()
     msg_to_edit, title, desc = data.get("msg_to_edit"), data.get("title"), data.get("desc")
     date = data.get("date")
@@ -137,16 +140,16 @@ async def add_notification_receive_time(message: Message, state: FSMContext, use
         await msg_to_edit.edit_text(wrong_format.get(user.get("lang")))
 
 
-async def add_notification_done(call: CallbackQuery, state: FSMContext, user: asyncpg.Record):
+async def add_notification_done(call: CallbackQuery, state: FSMContext, user: dict):
     data = await state.get_data()
     title, desc, date, time = data.get("title"), data.get("desc"), data.get("date"), data.get("time")
-    db, scheduler = call.bot.get("db"), call.bot.get("scheduler")
+    scheduler = call.bot.get("scheduler")
     day, month, year = date.split(".")
     hour, minute = time.split(":")
-    notification = await db.add_notification(user_id=call.from_user.id,
-                                             desc=desc,
-                                             date_complete=f"{date} {time}",
-                                             title=title)
+    notification = await Database.notifications.add(user_id=call.from_user.id,
+                                                    desc=desc,
+                                                    date_complete=f"{date} {time}",
+                                                    title=title)
     scheduler.add_job(send_notification, "date", run_date=datetime(
         year=int(year), month=int(month), day=int(day), hour=int(hour), minute=int(minute)
     ), args=(call.bot, call.from_user.id, notification.get('id')),

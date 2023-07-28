@@ -1,4 +1,4 @@
-asyncpg
 aiogram
+aiosqlite
 environs
 APScheduler

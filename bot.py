@@ -14,7 +14,7 @@ from tg_bot.handlers.general import register_general
 from tg_bot.handlers.notifications import register_notifications
 from tg_bot.middlewares.db import DBMiddleware
 from tg_bot.middlewares.role import RoleMiddleware
-from tg_bot.utils.db_commands import create_db_pool, DB
+from tg_bot.utils.db_commands import DatabaseCommands
 from tg_bot.utils.other_funcs import restore_notifications
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ def register_all_handlers(dp: Dispatcher):
 
 
 async def main():
+    await DatabaseCommands.create_database()
     logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s',
                         level=logging.INFO)
     logger.info("Starting bot")
@@ -35,8 +36,6 @@ async def main():
 
     storage = MemoryStorage()
 
-    pool = await create_db_pool(config)
-    db = DB(pool)
     scheduler = AsyncIOScheduler(timezone=str(pytz.timezone("Asia/Almaty")))
 
     bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
@@ -48,10 +47,9 @@ async def main():
 
     bot['scheduler'] = scheduler
     bot['config'] = config
-    bot['db'] = db
 
     register_all_handlers(dp)
-    await restore_notifications(db, bot, scheduler)
+    await restore_notifications(bot, scheduler)
     # start
     try:
         scheduler.start()
@@ -60,7 +58,6 @@ async def main():
         await dp.storage.close()
         await dp.storage.wait_closed()
         await (await bot.get_session()).close()
-        await pool.close()
 
 
 if __name__ == '__main__':

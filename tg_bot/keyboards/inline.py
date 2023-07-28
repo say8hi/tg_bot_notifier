@@ -2,6 +2,7 @@ import calendar
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from tg_bot.models.database import Database
 from tg_bot.utils.messages import notifications_button, add_notification_button, back_button, edit_title_button, \
     edit_desc_button, edit_date_button, delete_notification_button, month_dict, done_button, cancel_button, \
     personal_acc, order_a_bot, change_time_zone_msg, aks_for_time_zone, on_notification, off_notification
@@ -140,9 +141,9 @@ def back_to_notification_menu(lang):
     )
 
 
-async def notification_menu(db, user_id, lang):
+async def notification_menu(user_id, lang):
     keyboard = InlineKeyboardMarkup(row_width=2)
-    user_notifications = await db.get_notification(user_id, get_all=True)
+    user_notifications = await Database.notifications.custom_sql(f"SELECT * FROM notifications WHERE user_id={user_id}")
     for notification in user_notifications:
         keyboard.insert(InlineKeyboardButton(text=notification.get("title"),
                                              callback_data=f"notification:{notification.get('id')}"))

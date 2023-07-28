@@ -3,11 +3,12 @@ from datetime import datetime
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from tg_bot.models.database import Database
+
 
 async def send_notification(bot: Bot, user_id, notification_id):
-    db = bot.get("db")
-    notification = await db.get_notification(notification_id)
-    user = await db.get_user(user_id)
+    notification = await Database.notifications.get(notification_id)
+    user = await Database.users.get(user_id)
     text = f"Уведомляю о: <code>{notification.get('title')}</>\n\n" \
            f"Описание: {notification.get('desc')}\n\n" if user.get('lang') == "ru" else\
         f"I am notifying you about: <code>{notification.get('title')}</>\n\n" \
@@ -15,11 +16,11 @@ async def send_notification(bot: Bot, user_id, notification_id):
     await bot.send_message(user_id, text)
 
 
-async def add_notification_job(notif, db, bot: Bot, scheduler: AsyncIOScheduler):
+async def add_notification_job(notif, bot: Bot, scheduler: AsyncIOScheduler):
     date, time = notif.get('date_complete').split()
     day, month, year = date.split(".")
     hour, minute = time.split(":")
-    user = await db.get_user(notif.get("user_id"))
+    user = await Database.users.get(notif.get("user_id"))
     scheduler.add_job(send_notification, "date", run_date=datetime(
         year=int(year), month=int(month), day=int(day), hour=int(hour), minute=int(minute)
     ),
@@ -28,15 +29,15 @@ async def add_notification_job(notif, db, bot: Bot, scheduler: AsyncIOScheduler)
                       )
 
 
-async def restore_notifications(db, bot: Bot, scheduler: AsyncIOScheduler):
-    notifications = await db.get_notification(get_all=True)
+async def restore_notifications(bot: Bot, scheduler: AsyncIOScheduler):
+    notifications = await Database.notifications.get(get_all=True)
     for notif in notifications:
         if notif.get("is_on") == 1:
-            await add_notification_job(notif, db, bot, scheduler)
+            await add_notification_job(notif, bot, scheduler)
 
 
-async def broadcast(bot: Bot, db, text: str, photo: str = None):
-    users = await db.get_user(get_all=True)
+async def broadcast(bot: Bot, text: str, photo: str = None):
+    users = await Database.users.get(get_all=True)
     if photo:
         with open(photo, 'rb') as f:
             data = f.read()

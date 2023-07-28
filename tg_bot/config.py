@@ -4,11 +4,6 @@ from environs import Env
 
 
 @dataclass
-class DBConfig:
-    db_uri: str
-
-
-@dataclass
 class TgBot:
     token: str
     admins: list
@@ -17,7 +12,6 @@ class TgBot:
 @dataclass
 class Config:
     tg_bot: TgBot
-    db: DBConfig
 
 
 def load_config():
@@ -28,8 +22,5 @@ def load_config():
         tg_bot=TgBot(
             token=env.str("BOT_TOKEN"),
             admins=list(map(int, env.list("ADMINS")))
-        ),
-        db=DBConfig(
-            db_uri=env.str("URI")
         )
     )
