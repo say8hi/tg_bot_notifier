@@ -1,4 +1,0 @@
-aiogram~=2.25
-environs~=9.5.0
-APScheduler~=3.10.1
-aiosqlite~=0.19.0
