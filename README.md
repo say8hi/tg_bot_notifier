@@ -19,6 +19,23 @@ Welcome to the Telegram Notifier Bot repository! This bot is written in Python a
 - **Flexible Settings**: The bot allows you to set notifications for specific days of the week and repeat them at specified time intervals.
 
 - **Time Zone**: You can specify your time zone to receive accurate notifications.
+
+## Used Technologies
+
+The project is developed using the following technologies:
+
+- **Python:** Programming and development are carried out using the Python programming language.
+
+- **aiogram:** The aiogram framework for creating Telegram bots.
+
+- **PostgreSQL:** PostgreSQL is utilized as a relational database for storing and managing data.
+
+- **Docker:** The project is containerized using Docker, providing isolated and lightweight deployment.
+
+- **Redis:** Redis is employed for caching and managing the project's state, providing a high-performance, in-memory data store.
+
+These technologies were chosen to ensure efficient and convenient development, as well as to provide stability and scalability for the application.
+
 ## Installation Guide
 
 ### Local Installation
