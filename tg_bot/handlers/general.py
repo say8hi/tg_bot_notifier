@@ -1,5 +1,4 @@
 from aiogram import Dispatcher
-from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.builtin import CommandStart
 from aiogram.types import CallbackQuery, Message

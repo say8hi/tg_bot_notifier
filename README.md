@@ -1,7 +1,5 @@
 # Telegram Notifier Bot
 
-![Telegram Bot Logo](botmax.png)
-
 Welcome to the Telegram Notifier Bot repository! This bot is written in Python and uses SQLite database to provide users with the ability to set their own notifications and receive alerts from the bot.
 
 ## How to Use
