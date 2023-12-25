@@ -11,8 +11,12 @@ edit_desc_button = {
     'en': f"♻️Change description"
 }
 edit_date_button = {
-    'ru': f"♻️Изменить время",
+    'ru': f"♻️Изменить дату",
     'en': f"♻️Change date"
+}
+edit_time_button = {
+    'ru': f"♻️Изменить время",
+    'en': f"♻️Change time"
 }
 close_btn = {
     'ru': f"✖️Закрыть",
@@ -25,6 +29,10 @@ delete_notification_button = {
 back_button = {
     'ru': f"🔙Назад",
     'en': f"🔙Back"
+}
+confirm_button = {
+    'ru': f"✔️Подтвердить",
+    'en': f"✔️Confirm"
 }
 cancel_button = {
     'ru': f"✖️Отмена",

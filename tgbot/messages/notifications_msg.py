@@ -36,12 +36,12 @@ past_date = {
 # FUNCTIONS
 def notification_desc(notification, lang):
     return f"<b>{notification.get('title')}</b>\n\n" \
-           f"📜Описание: {notification.get('desc')}\n\n" \
+           f"📜Описание: {notification.get('description')}\n\n" \
            f"📆Придет: <code>{notification.get('date_complete')}</code>\n" \
            f"🕗Было добавлено: <code>{notification.get('date_set')}</code>\n" \
            f"➖➖➖➖➖➖➖➖➖" if lang == 'ru' else \
         f"<b>{notification.get('title')}</b>\n\n" \
-        f"📜Description: {notification.get('desc')}\n\n" \
+        f"📜Description: {notification.get('description')}\n\n" \
         f"📆Will notify at: <code>{notification.get('date_complete')}</code>\n" \
         f"🕗Was set on: <code>{notification.get('date_set')}</code>\n" \
         f"➖➖➖➖➖➖➖➖➖"
@@ -87,3 +87,47 @@ def last_agree(title, desc, date, time, lang):
         f"📆Date: <code>{date}</>\n\n" \
         f"🕗Time: <code>{time}</>\n\n" \
         f"Is everything correct?</b>"
+
+
+def edit_tile_desc_msg(arg, value, lang):
+    text_dict = {
+        "title": {"ru": f"🔖Текущий заголовок: <code>{value}</>\n\nОтправьте мне новый заголовок",
+                  "en": f"🔖Current title: <code>{value}</>\n\nSend me a new title"},
+        "description": {"ru": f"📜Текущее описание: <code>{value}</>\n\nОтправьте мне новое описание",
+                        "en": f"📜Current description: <code>{value}</>\n\nSend me a new description"}
+    }
+    return text_dict.get(arg).get(lang)
+
+
+def edit_tile_desc_confirm(arg, old_value, new_value, lang):
+    text_dict = {
+        "title": {"ru": f"🔖Текущий заголовок: <code>{old_value}</>\n"
+                        f"🔖Новый заголовок: <code>{new_value}</>\n\n"
+                        f"Подтвердить изменения?",
+                  "en": f"🔖Current title: <code>{old_value}</>\n"
+                        f"🔖New title: <code>{new_value}</>\n\n"
+                        f"Confirm editing notification?"},
+        "description": {"ru": f"📜Текущее описание: <code>{old_value}</>\n"
+                              f"📜Новое описание: <code>{new_value}</>\n\n"
+                              f"Подтвердить изменения?",
+                        "en": f"📜Current description: <code>{old_value}</>\n"
+                              f"📜New description: <code>{new_value}</>\n\n"
+                              f"Confirm editing notification?"}
+    }
+    return text_dict.get(arg).get(lang)
+
+
+def successfully_edited_msg(arg, old_value, new_value, lang):
+    text_dict = {
+        "title": {"ru": f"🔖Старый заголовок: <code>{old_value}</>\n"
+                        f"🔖Текущий заголовок: <code>{new_value}</>",
+                  "en": f"🔖Old title: <code>{old_value}</>\n"
+                        f"🔖Current title: <code>{new_value}</>"},
+        "description": {"ru": f"📜Старое описание: <code>{old_value}</>\n"
+                              f"📜Текущее описание: <code>{new_value}</>",
+                        "en": f"📜Old description: <code>{old_value}</>\n"
+                              f"📜Current description: <code>{new_value}</>"},
+        "success": {"ru": "✅Уведомление успешно изменено\n\n",
+                    "en": "✅Successfully edited notification\n\n"}
+    }
+    return text_dict.get("success").get(lang) + text_dict.get(arg).get(lang)

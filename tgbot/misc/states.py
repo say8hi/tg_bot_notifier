@@ -21,3 +21,13 @@ class AddNotificationState(StatesGroup):
     AN3 = State()
     AN4 = State()
     AN5 = State()
+
+
+class EditNotificationDescTitle(StatesGroup):
+    receive_value = State()
+    confirm = State()
+
+
+class EditNotificationDate(StatesGroup):
+    choose_value = State()
+

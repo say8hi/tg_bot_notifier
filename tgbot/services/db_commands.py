@@ -32,18 +32,18 @@ class DatabaseCommands:
                 return result
             return result[0] if result and len(result) == 1 else result
 
-    async def add(self, **kwargs):
+    async def add(self, **kwargs) -> asyncpg.Record:
         keys, values = zip(*kwargs.items())
         query = f"INSERT INTO {self.table} ({', '.join(keys)}) VALUES " \
                 f"({', '.join(['$'+str(i) for i in range(1, len(values) + 1)])}) RETURNING *"
         return await self.fetch_query(query, *values)
 
-    async def update(self, id_value: int, **kwargs):
+    async def update(self, id_value: int, **kwargs) -> None:
         set_values = ', '.join([f"{key} = ${i}" for i, (key, value) in enumerate(kwargs.items(), start=2)])
         query = f"UPDATE {self.table} SET {set_values} WHERE id = $1"
         await self.execute_query(query, id_value, *kwargs.values())
 
-    async def get(self, id_value: int = None, get_all: bool = False, **custom_params):
+    async def get(self, id_value: int = None, get_all: bool = False, **custom_params) -> asyncpg.Record | list:
         if get_all:
             return await self.fetch_query(f"SELECT * FROM {self.table}", return_one_record_list=True)
         elif custom_params:
@@ -53,7 +53,7 @@ class DatabaseCommands:
         elif id_value:
             return await self.fetch_query(f"SELECT * FROM {self.table} WHERE id = $1", id_value)
 
-    async def delete(self, id_value: int):
+    async def delete(self, id_value: int) -> None:
         query = f"DELETE FROM {self.table} WHERE id = $1"
         await self.execute_query(query, id_value)
 

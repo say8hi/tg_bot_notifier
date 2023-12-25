@@ -7,9 +7,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from tgbot.filters.chat import IsPrivate
 from tgbot.keyboards.inline import notification_menu, inside_notification_menu, back_to_notification_menu, \
-    select_date_menu, agree_menu
+    select_date_menu, agree_menu, back_to_notification_edit_menu, confirm_editing_notification
 from tgbot.messages.reply_buttons import notifications_button
-from tgbot.misc.states import AddNotificationState
+from tgbot.misc.states import AddNotificationState, EditNotificationDescTitle, EditNotificationDate
 from tgbot.models.db import Database
 from tgbot.messages.notifications_msg import *
 from tgbot.services.notifications import add_notification_job
@@ -67,16 +67,49 @@ async def enable_notification(call: CallbackQuery, user: dict, scheduler: AsyncI
 
 
 @notifications_router.callback_query(F.data.startswith('edit_notification:'))
-async def edit_notification(call: CallbackQuery, user: dict):
-    option, notif_id = call.data.split(":")[1], call.data.split(":")[2]
+async def edit_notification(call: CallbackQuery, state: FSMContext, user: dict):
+    option, notif_id = call.data.split(":")[1], int(call.data.split(":")[2])
     if option == "delete":
         await Database.notifications.delete(int(notif_id))
         await call.message.edit_text(notification_deleted_message.get(user.get("lang")),
                                      reply_markup=back_to_notification_menu(user.get('lang')))
+        return
+
+    notification = await Database.notifications.get(notif_id)
+    if option in ('title', 'description'):
+        await state.set_state(EditNotificationDescTitle.receive_value)
+        msg = await call.message.edit_text(edit_tile_desc_msg(option, notification.get(option), user.get('lang')),
+                                           reply_markup=back_to_notification_edit_menu(user.get('lang'), notif_id))
+        await state.update_data(msg_id=msg.message_id, notif_id=notif_id, option=option)
+        return
 
     else:
         await call.answer("❗️This function in development right now." if user.get('lang') == 'en' else
                           "❗️Эта функция находится в разработке")
+
+
+@notifications_router.message(EditNotificationDescTitle.receive_value)
+async def receive_title_desc(message: Message, state: FSMContext, user: dict):
+    data = await state.get_data()
+    msg_id, notif_id, option, value = data.get("msg_id"), data.get('notif_id'), data.get("option"), message.text
+    notif = await Database.notifications.get(notif_id)
+    await message.delete()
+    await message.bot.edit_message_text(edit_tile_desc_confirm(option, notif.get(option), value, user.get('lang')),
+                                        chat_id=message.from_user.id, message_id=msg_id,
+                                        reply_markup=confirm_editing_notification(user.get('lang'), notif_id))
+    await state.set_state(EditNotificationDescTitle.confirm)
+    await state.update_data(new_value=value)
+
+
+@notifications_router.callback_query(F.data == 'confirm_editing_notif', EditNotificationDescTitle.confirm)
+async def confirm_edit(call: CallbackQuery, state: FSMContext, user: dict):
+    data = await state.get_data()
+    notif_id, option, new_value = data.get('notif_id'), data.get("option"), data.get('new_value')
+    notif = await Database.notifications.get(notif_id)
+    await Database.notifications.update(notif_id, **{option: new_value})
+    await call.message.edit_text(successfully_edited_msg(option, notif.get(option), new_value, user.get('lang')),
+                                 reply_markup=back_to_notification_edit_menu(user.get('lang'), notif_id))
+    await state.clear()
 
 
 @notifications_router.callback_query(F.data == 'add_notification')

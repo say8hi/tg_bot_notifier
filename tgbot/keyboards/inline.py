@@ -131,11 +131,15 @@ def inside_notification_menu(notification_id, enabled, lang):
                 InlineKeyboardButton(text=edit_title_button.get(lang),
                                      callback_data=f"edit_notification:title:{notification_id}"),
                 InlineKeyboardButton(text=edit_desc_button.get(lang),
-                                     callback_data=f"edit_notification:desc:{notification_id}"),
+                                     callback_data=f"edit_notification:description:{notification_id}"),
             ],
             [
                 InlineKeyboardButton(text=edit_date_button.get(lang),
                                      callback_data=f"edit_notification:date:{notification_id}"),
+                InlineKeyboardButton(text=edit_time_button.get(lang),
+                                     callback_data=f"edit_notification:time:{notification_id}"),
+            ],
+            [
                 InlineKeyboardButton(text=delete_notification_button.get(lang),
                                      callback_data=f"edit_notification:delete:{notification_id}")
             ],
@@ -146,6 +150,29 @@ def inside_notification_menu(notification_id, enabled, lang):
             [
                 InlineKeyboardButton(text=back_button.get(lang),
                                      callback_data="all_notifications")
+            ]
+        ]
+    )
+
+
+def back_to_notification_edit_menu(lang: str, notif_id):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=back_button.get(lang), callback_data=f"notification:{notif_id}")
+            ]
+        ]
+    )
+
+
+def confirm_editing_notification(lang: str, notif_id):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=confirm_button.get(lang), callback_data='confirm_editing_notif')
+            ],
+            [
+                InlineKeyboardButton(text=cancel_button.get(lang), callback_data=f"notification:{notif_id}")
             ]
         ]
     )
@@ -211,7 +238,6 @@ async def select_date_menu(user, year, month, day):
             continue
         keyboard.add(InlineKeyboardButton(text=str(i), callback_data=f"add_choose_date:{year}:{month}:{i}:not"))
 
-    # keyboard.adjust(7, repeat=True)
     keyboard.adjust(3, 7)
     keyboard.row(InlineKeyboardButton(text=done_button.get(user.get('lang')),
                                       callback_data=f"add_choose_date:{year}:{month}:{day}:done"))
