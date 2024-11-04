@@ -45,7 +45,7 @@ def notification_desc(notification, lang):
         else f"<b>{notification.title}</b>\n\n"
         f"📜Description: {notification.description}\n\n"
         f"📆Will notify at: <code>{notification.date_completed}</code>\n"
-        f"🕗Was set on: <code>{notification.date_created}</code>\n"
+        f"🕗Was set on: <code>{notification.date_created.strftime('%d.%m.%Y %H:%M')}</code>\n"
         f"➖➖➖➖➖➖➖➖➖"
     )
 
